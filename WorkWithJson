@@ -1,0 +1,38 @@
+using System.IO;
+using UnityEngine;
+
+public class GameHandler : MonoBehaviour
+{
+    
+    void Start()
+    {
+        Debug.Log("GameHandller start");   
+        PlayerData playerData = new PlayerData();
+        playerData.position = new Vector3(5,0);
+        playerData.health = 80;
+        
+// #region 1 Создание json
+//         string json = JsonUtility.ToJson(playerData); // походу передача данных в json
+//         Debug.Log(json);
+// #endregion
+//
+// #region 2
+//         File.WriteAllText( Application.dataPath + "/saveFile.json", json);
+// #endregion
+
+#region 3 чтение из json
+
+string json = File.ReadAllText(Application.dataPath + "/saveFile.json");
+        PlayerData loadedPlayerData = JsonUtility.FromJson<PlayerData>(json);
+        Debug.Log("position: " + loadedPlayerData.position);
+        Debug.Log("position: " + loadedPlayerData.health);
+#endregion        
+    }
+
+    private class PlayerData
+    {
+        public Vector3 position;
+        public int health;
+    }
+}
+
