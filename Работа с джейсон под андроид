@@ -1,0 +1,36 @@
+using System.IO;
+using UnityEngine;
+
+public class Preloader : MonoBehaviour
+{
+    private void Awake()
+    {
+    // На андроиде простой Datapath не работает поэтому грузим джейсон из ресурсов, переводим в текстовый асет и потом все тоже самое. Это решение проблемы.
+        TextAsset txtAsset = (TextAsset)Resources.Load("GameConfig", typeof(TextAsset));
+        string json = txtAsset.text;
+        GameProperties loadedData = JsonUtility.FromJson<GameProperties>(json);
+
+        GameData.GameAreaWidth = loadedData.gameAreaHeight;
+        GameData.GameAreaHeight = loadedData.gameAreaHeight;
+        GameData.NumUnitsToSpawn = loadedData.numUnitsToSpawn;
+        GameData.UnitSpawnDelay = loadedData.unitSpawnDelay;
+        GameData.UnitSpawnMinRadius = loadedData.unitSpawnMinRadius;
+        GameData.UnitSpawnMaxRadius = loadedData.unitSpawnMaxRadius;
+        GameData.UnitSpawnMinSpeed = loadedData.unitSpawnMinSpeed;
+        GameData.UnitSpawnMaxSpeed = loadedData.unitSpawnMaxSpeed;
+        GameData.UnitDestroyRadius = loadedData.unitDestroyRadius;
+    }
+
+    class GameProperties
+    {
+        public int gameAreaWidth;
+        public int gameAreaHeight;
+        public int numUnitsToSpawn;
+        public int unitSpawnDelay;
+        public float unitSpawnMinRadius;
+        public float unitSpawnMaxRadius;
+        public float unitSpawnMinSpeed;
+        public float unitSpawnMaxSpeed;
+        public float unitDestroyRadius;
+    }
+}
