@@ -1,0 +1,219 @@
+/**
+ * Created by Emerald Powder for video tutorial https://youtu.be/zi3l2etjpFM
+ **/
+
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+public class TreeBase : MonoBehaviour
+{
+
+    // ......
+
+#if UNITY_EDITOR
+    [ContextMenu("Position tree")]
+    public void PositionTree()
+    {
+        if (Physics.Raycast(transform.position + Vector3.up * 100, Vector3.down, out var hit, 200,
+            LayerMask.GetMask("Ground")))
+        {
+            // Уберите Undo, если вызываете этот метод из верхнего меню для всех деревьев в цикле
+            Undo.RecordObject(transform, "position tree");
+
+            transform.position = hit.point - hit.normal * .1f;
+
+            Vector3 normal = hit.normal;
+
+            Vector3 fwd = Vector3.Cross(normal, Vector3.right).normalized;
+            fwd = Quaternion.AngleAxis(Random.Range(0, 360), normal) * fwd;
+            transform.rotation = Quaternion.LookRotation(fwd, normal);
+        }
+    }
+#endif
+}
+
+public class GameMenu : EditorWindow
+{
+    [MenuItem("Game/Clear player prefs")]
+    public static void ClearPlayerPrefs()
+    {
+        PlayerPrefs.DeleteAll();
+    }
+
+    [MenuItem("Game/Take screenshot")]
+    public static void TakeScreenshot()
+    {
+        string path = "Screenshots";
+
+        Directory.CreateDirectory(path);
+
+        int i = 0;
+        while (File.Exists(path + "/" + i + ".png")) i++;
+
+        ScreenCapture.CaptureScreenshot(path + "/" + i + ".png");
+    }
+
+    [MenuItem("Game/Tools/Pos all trees")]
+    public static void PositionAllTrees()
+    {
+        TreeBase[] trees = Object.FindObjectsOfType<TreeBase>();
+
+        Undo.RecordObjects(trees.Select(t => t.transform).ToArray(), "pos all trees");
+        
+        foreach (var tree in trees)
+        {
+            tree.PositionTree();
+        }
+    }
+    
+    [MenuItem("Game/Check current scene for Standard material")]
+    private static void CheckMaterials()
+    {
+        bool found = false;
+        foreach (MeshRenderer renderer in Object.FindObjectsOfType<MeshRenderer>())
+        {
+            foreach (Material material in renderer.sharedMaterials)
+            {
+                if (material.shader.name == "Standard")
+                {
+                    Debug.LogError(material.shader.name, renderer);
+                    found = true;
+                }
+            }
+        }
+
+        if (!found) Debug.Log("Well done, no any Standard materials on current scene!");
+    }
+}
+
+public class LevelContextMenu
+{
+    [MenuItem("Assets/Set As Debug")]
+    public static void SetAsDebug()
+    {
+        Level selectedLevel = ((GameObject) Selection.activeObject).GetComponent<Level>();
+
+        Object.FindObjectOfType<GameManager>().DebugLevel = selectedLevel;
+    }
+
+    [MenuItem("Assets/Set As Debug", true)]
+    public static bool SetAsDebugValidator()
+    {
+        return Selection.activeObject is GameObject &&
+               ((GameObject) Selection.activeObject).GetComponent<Level>() != null;
+    }
+}
+
+
+[ExecuteAlways]
+public class TrafficLight : MonoBehaviour
+{
+    public bool IsSwitched;
+
+    private MeshRenderer meshRendererComponent;
+
+    public Material Gray;
+    public Material Red;
+    public Material Green;
+
+    private float timeToSwitch = 1;
+
+    private void Start()
+    {
+        meshRendererComponent = GetComponent<MeshRenderer>();
+    }
+
+    private void Update()
+    {
+        if (Application.IsPlaying(gameObject))
+        {
+            timeToSwitch -= Time.deltaTime;
+            if (timeToSwitch < 0)
+            {
+                IsSwitched = !IsSwitched;
+                timeToSwitch = 1;
+            }
+        }
+
+        meshRendererComponent.sharedMaterials = new[]
+        {
+            Gray,
+            IsSwitched ? Gray : Red,
+            Gray,
+            IsSwitched ? Green : Gray,
+            IsSwitched ? Red : Gray,
+            Gray,
+            IsSwitched ? Gray : Green
+        };
+    }
+}
+
+[ExecuteAlways]
+[SelectionBase]
+public class RepeatedObject : MonoBehaviour
+{
+    public Vector3 Offset = Vector3.forward; 
+
+    [Min(1)] public int Count = 1;
+
+    private void Start()
+    {
+        if (Application.IsPlaying(this))
+        {
+            CorrectChildCount();
+            Destroy(this);
+        }
+    }
+
+    private void Update()
+    {
+        CorrectChildCount();
+    }
+
+    private void CorrectChildCount()
+    {
+        Count = Mathf.Clamp(Count, 1, 1000);
+        
+        if (transform.childCount < Count)
+        {
+            for (int i = transform.childCount; i < Count; i++)
+            {
+                Transform instantiate = Instantiate(transform.GetChild(0), transform);
+                instantiate.Translate(Offset * i);
+            }
+        }
+        else if (Count < transform.childCount)
+        {
+            for (int i = transform.childCount-1; i >= Count; i--)
+            {
+                DestroyImmediate(transform.GetChild(i).gameObject);
+            }
+        }
+    }
+}
+
+[ExecuteAlways]
+public class InspectorConstraints : MonoBehaviour
+{
+    public Color[] Colors = new Color[2];
+    
+    [Space]
+    
+    [Min(0)] public int ColorIndex;
+    public int EvenNumbersOnly;
+
+    private void Start()
+    {
+        GetComponent<MeshRenderer>().sharedMaterial.color = Colors[ColorIndex];
+    }
+
+    private void Update()
+    {
+        if (ColorIndex >= Colors.Length) ColorIndex = Colors.Length - 1;
+        if (EvenNumbersOnly % 2 != 0) EvenNumbersOnly++;
+        
+        GetComponent<MeshRenderer>().sharedMaterial.color = Colors[ColorIndex];
+    }
+}
